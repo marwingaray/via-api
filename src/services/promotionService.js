@@ -1,5 +1,6 @@
 const getDatabase = require('../database/index');
 const db = require("../database/firestoreDb")
+const admin = require('firebase-admin');
 
 
 //const db = require('./firestore-config');
@@ -35,8 +36,14 @@ const getPromotions = async () => {
 };
 
 const getPromotionsAvailable = async () => {
+  const now = admin.firestore.Timestamp.now();
+  console.log('now', now);
   try {
-    const snapshot = await db.collection('promotions').where('status', '==', true).get();
+    const snapshot = await db.collection('promotions')
+    .where('status', '==', true)
+    .where('startDate', '<=', now)
+    .where('endDate', '>=', now)
+    .get();
     if (snapshot.empty) {
       return [];
     }

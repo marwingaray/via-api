@@ -30,7 +30,7 @@ const getHistoryByDriverHandler = async (req, res) => {
     const paid = req.query.paid;
     const resGet = await getHistoryByDriver(driver);
     let response;
-    console.log("getHistoryByDriver",resGet )
+    //console.log("getHistoryByDriver",resGet )
     if (resGet) {
       const totalDiscountAmount = resGet.reduce((sum, item) => sum + item.discount, 0);
       response = {
