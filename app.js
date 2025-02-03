@@ -2,6 +2,8 @@
 const dotenv = require('dotenv');
 const express = require('express');
 const  morgan = require('morgan');
+const cors = require('cors');
+
 const promotionsRoutes = require('./src/routes/promotionsRoutes.js');
 const promotionsHistoryRoutes = require('./src/routes/promotionHistoryRoutes.js');
 const paymentRoutes = require('./src/routes/paymentRoutes.js');
@@ -12,7 +14,11 @@ const app = express();
 app.set("port",process.env.PORT || 3000);
 app.set('json spaces', 2);
 
-
+app.use(cors({
+  origin: 'http://localhost:4200',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 //const { response } = require('express');
 

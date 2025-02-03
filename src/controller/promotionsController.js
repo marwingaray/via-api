@@ -1,10 +1,9 @@
 const response = require('express');
-
 const dayjs = require('dayjs');
 const promotionService = require('../services/promotionService')
-
 const db = require("../database/firestoreDb");
 const { message } = require('../schemas/promotionHistorySchema');
+const admin = require('firebase-admin');
 
 
 const createPromotions = async (req, res) => {
@@ -20,8 +19,9 @@ const createPromotions = async (req, res) => {
 
 const getPromotionsAvailable = async (req, res) => {
   try {
-    const datare = req.body;
+    //const datare = req.body;
     const data = await promotionService.getPromotionsAvailable();
+    console.log('getPromotionsAvailable', data);
     if (data) {
       let response={
         code:200,
@@ -96,41 +96,62 @@ const getPromotions = async (req, res) => {
 
 const getPromotionByUser = async (req, res) => {
   const { idUser, trips, typeService, typeUser } = req.params;
-  let response = {};
+  
   try {
+    let response = {};
     const data = await promotionService.getPromotionsAvailable();
     if (!Array.isArray(data)) {
+      console.log('Array.isArray(data)');
       response = {code: 204, response: false, data:{}, message: "The user does not apply for any promotion."}
-    }
-    const filteredPromo = data.filter(
-      promo => promo.service.toUpperCase() == typeService.toUpperCase() && promo.userType.toUpperCase() == typeUser.toUpperCase()
-    );
-    if (Array.isArray(filteredPromo) && filteredPromo.length>0) {
-      filteredPromo.sort((a, b) => a.priority.seconds - b.priority.seconds);
-      const selectedPromo = filteredPromo[0];
-      const typePromo = selectedPromo.conditions?.type;
-      
-      switch (typePromo) {
-        case 'recharge':
-          response = promoRecharge(selectedPromo)
-          break;
-        case 'news':
-          const promoNewsPassenger = data.find(promo => promo.id === 'news');
-          response = promoNewUsers(selectedPromo,trips)
-          break;
-        /*case 'perDays':
-          response = promoPerDays()
-          break;
-        case 'perHours':
-          response = promoPerHours()
-          break;*/
-        default:
-          response = response = {code: 204, response: false, data:{}, message: "NOT FOUND PROMOTIONS"}
-          break;
-      }
     }else{
-      response = {code: 204, response: false,data:{}, message: "The user does not apply for any promotion"}
+      const filteredPromo = data.filter(
+        promo => promo.service.toUpperCase() == typeService.toUpperCase() && promo.userType.toUpperCase() == typeUser.toUpperCase()
+      );
+      if (Array.isArray(filteredPromo) && filteredPromo.length>0) {
+        filteredPromo.sort((a, b) => a.priority.seconds - b.priority.seconds);
+        
+        let promoAvailable = false;
+        
+        filteredPromo.forEach(promo => {
+          console.log('Promo foreach', promo);
+          if (!promoAvailable) {
+            const typePromo = promo.conditions?.type;
+            console.log('typePromo', typePromo);
+            switch (typePromo) {
+              case 'recharge':
+                response = promoRecharge(promo)
+                if (response.response) {
+                  promoAvailable = true;
+                }
+                break;
+              case 'news':
+                response = promoNewUsers(promo,trips)
+                if (response.response) promoAvailable = true;
+                break;
+              case 'perDays':
+                response = promoPerDays(promo);
+                console.log('perDays response',response);
+                if (response.response) promoAvailable = true;
+                console.log('perDays promoAvailable',promoAvailable);
+                break;
+              /*case 'perHours':
+                response = promoPerHours()
+                break;*/
+              default:
+                response = {code: 204, response: false, data:{}, message: "NOT FOUND PROMOTIONS"}
+                break;
+            }
+          }
+
+        });
+        console.log('response success', response);
+        //res.status(response.code).json({success: response.response, data:response.data, message: response.message});
+        //return;
+      }else{
+        response = {code: 204, response: false,data:{}, message: "The user does not apply for any promotion"}
+      }
     }
+    console.log('response response response', response);
     res.status(response.code).json({success: response.response, data:response.data, message: response.message});
 
   } catch (error) {
@@ -142,11 +163,46 @@ const getPromotionByUser = async (req, res) => {
 
 function byNewUsers(conditions, trips){
   const promoPerUser = (conditions.promoPerUser) ? conditions.promoPerUser : null
-
   if (promoPerUser && promoPerUser <= trips) {
     return false;
   }
   return conditions.maxAmount || 0;
+}
+
+const promoPerDays = (promo) => {
+  
+  const now = dayjs().format('YYYY-MM-DD');
+  const days = promo.conditions.list;
+  console.log('days', days);
+  if(days && days.length>0){
+
+    const found = days.some(item => item.date === now);
+    if (found) {
+      const uid = promo.id;
+      const dateObjectStart = new Date(promo.startDate._seconds * 1000);
+      const startDate = dayjs(dateObjectStart).format('YYYY-MM-DD');
+      const dateObjectEnd = new Date(promo.endDate._seconds * 1000);
+      const endDate = dayjs(dateObjectEnd).format('YYYY-MM-DD');
+
+      const data = {
+        uid: uid || 123,
+        codPromo: promo.codPromo,
+        title: promo.name,
+        terms: promo.terms,
+        discountType: promo.discountType,
+        discountAmount: promo.discountAmount,
+        endDate:endDate,
+        startDate: startDate,
+        maxUseByUser: promo.conditions.promoPerUser,
+        currentUsage: 1,//parseFloat(trips) +1,
+        maxAmount: promo.conditions.maxAmount
+        }
+      return {code: 200, response: true, data: data, message: "ok"}
+    }else{
+
+    }
+  }
+  return {code: 204, response: false, data: {}, message: "Not applicable"}
 }
 
 
@@ -201,4 +257,37 @@ promoRecharge = (promo)=>{
   return {code: 200, response: true, data: data, message: "ok"}
 }
 
-module.exports = { createPromotions, getPromotions, getPromotionByUser, getPromotionsAvailable};
+
+
+const setPromotionHandler = async (req, res) => {
+  const data = req.body
+  let response = {};
+  console.log( 'setPromotionHandler data', data);
+  const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/; // YYYY-MM-DD
+  if (!dateRegex.test(data.startDate) || !dateRegex.test(data.endDate)) {
+    response = {code: 500, response: false,data:{}, message: "Data error"}
+  }else{
+    const dateObjectStart = new Date(data.startDate);
+    const  startDate = admin.firestore.Timestamp.fromDate(dateObjectStart);
+    const dateObjectEnd = new Date(data.endDate);
+    let endDate = admin.firestore.Timestamp.fromDate(dateObjectEnd);
+    data.startDate = startDate;
+    data.endDate = endDate;
+    const dataSet = {createAt: new Date(), ...data}
+    try {
+      const resSet = await promotionService.setPromotion(dataSet);
+      if (!resSet) {
+        response = {code: 500, response: false,data:{}, message: "Error  inserting record"}
+      }else{
+        response = {code: 201, response: true,data:{uid: resSet}, message: "Record registered"}
+      }
+      
+    } catch (error) {
+      response = {code: 503, response: false, data:{}, message: error}
+    }
+  }
+  
+  res.status(response.code).json({success:response.response, data: response.data, message: response.message});
+}
+
+module.exports = { createPromotions, getPromotions, getPromotionByUser, getPromotionsAvailable, setPromotionHandler};

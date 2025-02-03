@@ -11,7 +11,7 @@ const {
 
 const { updateStatePaymentAll } = require("./promoHistoryService.js");
 const { createUser } = require("./usersService.js");
-const { message } = require("../schemas/promotionHistorySchema");
+//const { message } = require("../schemas/promotionHistorySchema");
 const { getPromotionsAvailable } = require("./promotionService")
 
 const pathCollection = "users";

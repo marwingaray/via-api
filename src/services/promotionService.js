@@ -43,6 +43,7 @@ const getPromotionsAvailable = async () => {
     .where('status', '==', true)
     .where('startDate', '<=', now)
     .where('endDate', '>=', now)
+    .orderBy('startDate', 'asc')
     .get();
     if (snapshot.empty) {
       return [];
@@ -61,4 +62,16 @@ const getPromotions_ = async () => {
   //return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 }
 
-module.exports = {getPromotionsAvailable, getPromotions, getAllPromotions}
+const setPromotion = async (data) =>{
+  try {
+    //const snapshot = await db.collection('promotions').get();
+    const docRef = await db.collection('promotions').add(data);
+    return docRef.id
+    //console.log('Nuevo registro agregado con ID:', docRef.id);
+  } catch (error) {
+    return false;
+    //console.error('Error al agregar el registro:', error);
+  }
+}
+
+module.exports = {getPromotionsAvailable, getPromotions, getAllPromotions, setPromotion}

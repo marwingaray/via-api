@@ -1,12 +1,12 @@
 const dayjs = require('dayjs');
 const { createPayment } = require('../services/paymentService');
 const { getPromotionsAvailable } = require("../services/promotionService");
-const { message } = require('../schemas/promotionHistorySchema');
+//const { message } = require('../schemas/promotionHistorySchema');
 
 
 const createPaymentHandler = async (req, res) => {
   let response = {};
-  try {    
+  try {   
     const uidDriver = req.params.idDriver;
     const todayTimestamp = {
       seconds: dayjs().unix(),
