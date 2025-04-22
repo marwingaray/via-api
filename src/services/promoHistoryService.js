@@ -1,35 +1,48 @@
-const db = require("../database/firestoreDb")
+const db = require("../database/firestoreDb");
+const admin = require("firebase-admin");
 const { getFirestore, collection, query, where, orderBy, getDocs } = require("firebase/firestore");
 
-const pathCollection = "promotionsHistory";
+const pathCollectionDriver = "drivers";
+const pathCollectionPassenger = "passengers";
 
-const createPromotionsHistory = async (data) => {
+const createPromotionsHistory = async (uid, data) => {
   try {
-    const docRef = await db.collection(pathCollection).add(data);
+    const docRef = await db.collection(`${pathCollectionDriver}/${uid}/promotionsHistory`).add(data);
     return { id: docRef.id, ...data };
   } catch (error) {
-    throw new Error(`Error al obtener promociones: ${(error).message}`);
+    throw new Error(`Error al registrar historial: ${(error).message}`);
   }
 };
 
-const getHistoryByDriver = async (idDriver, paid=null) => {
+// TODO Move to service passenger. exist in passenger service setUsagePromotion
+const createPromotionsHistoryPassenger = async (uidPassenger, uidPromo) => {
+  try {
+    const ref = db.collection(pathCollectionPassenger).doc(uidPassenger).collection("promotionsHistory").doc(uidPromo);
+    const promoDoc = await ref.get();
+    await ref.set({
+      uidPromo,
+      usage: admin.firestore.FieldValue.increment(1),
+      date_modified: new Date(),
+      create_at: promoDoc.exists ? promoDoc.data().create_at : new Date()
+    },{
+      merge: true
+    }
+  )
+    return { id: ref.id };
+  } catch (error) {
+    throw new Error(`Error al registrar historial de pasajero: ${(error).message}`);
+  }
+};
+
+const getHistoryByDriver = async (idDriver, paid="all") => {
   try {
     let snapshot;
-    if (paid) {
-      snapshot = await db.collection(pathCollection)
-      .where("id_driver", "==", idDriver)
-      .where("paid", "==", paid)
-      .orderBy("create_at", "desc")
-      .get();
-    }if (paid == false) {
-      snapshot = await db.collection(pathCollection)
-      .where("id_driver", "==", idDriver)
-      .where("paid", "==", paid)
-      .orderBy("create_at", "desc")
-      .get();
+    const path = db.collection(pathCollectionDriver).doc(idDriver).collection('promotionsHistory')
+    if ( paid == "all") {
+      snapshot = await path.orderBy("create_at", "desc").get();
     }else{
-      snapshot = await db.collection(pathCollection)
-      .where("id_driver", "==", idDriver)
+      snapshot = await path
+      .where("paid", "==", paid)
       .orderBy("create_at", "desc")
       .get();
     }
@@ -41,18 +54,24 @@ const getHistoryByDriver = async (idDriver, paid=null) => {
     throw new Error(`Error al obtener historial de promociones usadas: ${(error).message}`);
   }
 };
-const updateStatePaymentAll = async (driverId)=>{
+
+/***
+ * 
+ * const updatedRecords = await Promise.all(updates);
+ */
+const updateStatePaymentAll = async (idDriver)=>{
   try {
-    const history = await getHistoryByDriver(driverId, false)
-    
+    const history = await getHistoryByDriver(idDriver, false)
+    console.log('updateStatePaymentAll', history);
     if (history.length === 0) {
       return false;
     }
     const updates = history.map(async (record) => {
-      const docRef = db.collection(pathCollection).doc(record.id);
+      const docRef = db.collection(`${pathCollectionDriver}/${idDriver}/promotionsHistory`).doc(record.id);
       return await docRef.update({ paid: true });
     });
-    const updatedRecords = await Promise.all(updates);
+    await Promise.all(updates);
+    
     return history;
   } catch (error) {
     console.error('Error al actualizar los registros:', error);
@@ -60,4 +79,4 @@ const updateStatePaymentAll = async (driverId)=>{
   }
 }
 
-module.exports = { createPromotionsHistory, getHistoryByDriver,updateStatePaymentAll }
+module.exports = { createPromotionsHistory, getHistoryByDriver,updateStatePaymentAll, createPromotionsHistoryPassenger}

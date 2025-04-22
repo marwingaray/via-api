@@ -1,5 +1,5 @@
 const dayjs = require('dayjs');
-const { createPromotionsHistory, getHistoryByDriver } = require('../services/promoHistoryService');
+const { createPromotionsHistory, getHistoryByDriver, createPromotionsHistoryPassenger } = require('../services/promoHistoryService');
 
 
 const createHistoryHandler = async (req, res) => {
@@ -9,16 +9,19 @@ const createHistoryHandler = async (req, res) => {
       seconds: dayjs().unix(),
       nanoseconds: dayjs().millisecond() * 1e6,
     };
+    const uid = data.idDriver;
+    const idPassenger = data.idUser;
+    
+    const newData  = { ...data, paid:false, createAt:todayTimestamp, };
+    const resDriver = await createPromotionsHistory(uid, adapterToDb(newData));
 
-    const newData = {paid:false,createAt:todayTimestamp,...data}
-    const resCreate = await createPromotionsHistory(adapterToDb(newData));
-
-    if (resCreate) {
-      res.status(201).json({ success: true, data: resCreate });
+    await createPromotionsHistoryPassenger(idPassenger, data.uid);
+    if (resDriver) {
+      res.status(201).json({ success: true, data: resDriver });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
-  } 
+  }
 }
 
 /**
@@ -27,7 +30,7 @@ const createHistoryHandler = async (req, res) => {
 const getHistoryByDriverHandler = async (req, res) => {
   try {
     const { driver } = req.params;
-    const paid = req.query.paid;
+    
     const resGet = await getHistoryByDriver(driver);
     let response;
     //console.log("getHistoryByDriver",resGet )
@@ -43,14 +46,10 @@ const getHistoryByDriverHandler = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-  
-
 }
 
-
-
 function adapterToDb(data){
-  res = {
+  let res = {
     cod_promo: data.codPromo,
     create_at: data.createAt,
     discount: data.discount,

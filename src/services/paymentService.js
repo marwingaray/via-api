@@ -8,19 +8,20 @@ const {
   getDocs,
 } = require("firebase/firestore");
 
-
 const { updateStatePaymentAll } = require("./promoHistoryService.js");
-const { createUser } = require("./usersService.js");
-//const { message } = require("../schemas/promotionHistorySchema");
+const { createDriver } = require("./driverService.js");
+
 const { getPromotionsAvailable } = require("./promotionService")
 
-const pathCollection = "users";
+
+const pathCollection = "drivers";
 
 const createPayment = async (driverId, newPayment) => {
   try {
-    const resState = await updateStatePaymentAll(driverId);
+    const resState = await updateStatePaymentAll(driverId, false);
+console.log('resState', resState);
     if (!resState) {
-      return {error:true, message:"Usuario no tiene pendientes por pagar"};
+      return {error:true, message:"El conductor no tiene credito por cobrar"};
     }
     const totalCredit = resState.reduce((accumulator, current) => accumulator + current.discount, 0);
 
@@ -45,9 +46,8 @@ const createPayment = async (driverId, newPayment) => {
     newPayment.promotionalPercentage = discountAmount;
     const userRef = db.collection(pathCollection).doc(driverId);
     const userSnapshot = await userRef.get();
-    //console.log("userSnapshot.exists",userSnapshot.exists);
     if (!userSnapshot.exists) {
-      const resUser = await createUser(driverId);
+      const resUser = await createDriver(driverId);
       if (resUser) {
         const userRef_ = db.collection(pathCollection).doc(driverId);
         const userSnapshot_ = await userRef_.get();

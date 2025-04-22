@@ -1,6 +1,9 @@
 const Joi = require('joi');
 
 const promotionHistorySchema = Joi.object({
+  uid: Joi.string().min(3).required().messages({
+    'uid': 'incorrect value',
+  }),
   codPromo: Joi.string().min(3).max(20).required().messages({
     'codPromo': 'incorrect value',
   }),
