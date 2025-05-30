@@ -144,6 +144,6 @@ app.use((req, res, next) => {
 });
 
 
-app.listen(app.get('port'),process.env.HOSTNAME|| '192.168.1.36',()=>{
+app.listen(app.get('port'),process.env.HOSTNAME|| '192.168.1.100',()=>{
   console.log(`Server listening on port ${app.get('port')}`);
 });
