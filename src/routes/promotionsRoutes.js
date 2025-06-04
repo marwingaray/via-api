@@ -9,8 +9,8 @@ const router = express.Router();
 
 // controllers to manage las request de promotions
 
-// Path GET para obtener todos los usuarios
-router.get('/', getPromotions);
+// Path GET para obtener todos las promociones
+router.get('/', auth, getPromotions);
 
 // Path GET para obtener un usuario por ID
 router.get('/:typeService/:typeUser',  ((req, res)=>{
