@@ -1,15 +1,34 @@
-const jwt = require('jsonwebtoken');
-authMiddleware = (req, res, next) => {
-  const token = req.header('Authorization')?.split(' ')[1]; // Leer el token del header
-  if (!token) {
-    return res.status(401).json({ message: 'Acceso denegado. Token no proporcionado.' });
+const jwt = require("jsonwebtoken");
+const dotenv = require('dotenv');
+
+dotenv.config();
+const publicKey = process.env.PUBLIC_KEY_JWT.replace(/\\n/g, '\n');
+
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authorization token missing or malformed',
+      code: 'AUTH_HEADER_INVALID',
+    });
   }
+
+  const token = authHeader.split(' ')[1];
+
   try {
-    //const decoded = jwt.verify(token, process.env.JWT_KEY); // Verifica el token con la clave secreta
-    //req.user = decoded; // Agrega la información del usuario al objeto req
+    const decoded = jwt.verify(token, publicKey, { algorithms: ['RS256'] });
+    req.user = decoded; // Optional
     next();
   } catch (err) {
-    res.status(403).json({ message: 'Token no válido.' + token });
+    const isExpired = err.name === 'TokenExpiredError';
+    return res.status(403).json({
+      success: false,
+      message: isExpired ? 'Token has expired' : 'Invalid token',
+      code: isExpired ? 'EXPIRED_TOKEN' : 'INVALID_TOKEN',
+    });
   }
 };
-module.exports = authMiddleware;
+
+module.exports = verifyToken;
