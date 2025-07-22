@@ -5,7 +5,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const promotionsRoutes = require('./src/routes/promotionsRoutes.js');
 const promotionsHistoryRoutes = require('./src/routes/promotionHistoryRoutes.js');
-
+const paymentsRoutes = require('./src/routes/paymentRoutes.js');
 
 dotenv.config();
 
@@ -54,6 +54,7 @@ app.use(express.json());
 // Register the paths 'promotions'
 app.use('/v1/api/promotions', promotionsRoutes);
 app.use('/v1/api/promotionsHistory', promotionsHistoryRoutes);
+app.use('/v1/api/payments', paymentsRoutes);
 
 
 app.get('/', (req, res) => {    
