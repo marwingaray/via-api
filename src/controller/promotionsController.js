@@ -91,12 +91,87 @@ const getPromotions = async (req, res) => {
     const result = await promotionService.getPromotions();
     res.status(200).json(result);
   } catch (error) {
-    console.error(error);
+    console.error('PROMOSERV04',error);
     res.status(500).json({ error: 'Error al crear el usuario' });
   }
 }
 
 const getPromotionByUser = async (req, res) => {
+  const { idUser, trips, typeService, typeUser } = req.params;
+
+  try {
+    const promotions = await promotionService.getPromotionsAvailable();
+
+    // Si no es un array, respondemos temprano
+    if (!Array.isArray(promotions)) {
+      return res.status(204).json({
+        success: false,
+        data: {},
+        message: "The user does not apply for any promotion."
+      });
+    }
+
+    // Filtrar promociones por tipo de servicio y usuario
+    const filteredPromos = promotions.filter(promo =>
+      promo.service?.toUpperCase() === typeService.toUpperCase() &&
+      promo.userType?.toUpperCase() === typeUser.toUpperCase()
+    );
+
+    if (!filteredPromos.length) {
+      return res.status(204).json({
+        success: false,
+        data: {},
+        message: "The user does not apply for any promotion."
+      });
+    }
+
+    // Ordenar por prioridad
+    filteredPromos.sort((a, b) => a.priority?.seconds - b.priority?.seconds);
+    for (const promo of filteredPromos) {
+      const typePromo = promo.promoType;
+      let response;
+
+      switch (typePromo) {
+        case 'recharge':
+          response = promoRecharge(promo);
+          break;
+        case 'news':
+          response = await promoNewUsers(promo, trips, idUser);
+          break;
+        case 'perDays':
+          response = await promoPerDays(promo, idUser);
+          break;
+        default:
+          continue; // Si el tipo no es válido, saltamos a la siguiente promo
+      }
+
+      if (response?.response) {
+        return res.status(response.code).json({
+          success: response.response,
+          data: response.data,
+          message: response.message
+        });
+      }
+    }
+
+    // Si ninguna promoción aplica
+    return res.status(204).json({
+      success: false,
+      data: {},
+      message: "The user does not apply for any promotion."
+    });
+
+  } catch (error) {
+    console.error('Error in getPromotionByUser:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// TODO Se refactorizo, revisa rsi refactorizafcion funciona
+const getPromotionByUser_ = async (req, res) => {
   const { idUser, trips, typeService, typeUser } = req.params;  
   try {
     let response = {};
@@ -110,50 +185,33 @@ const getPromotionByUser = async (req, res) => {
       if (Array.isArray(filteredPromo) && filteredPromo.length>0) {
         filteredPromo.sort((a, b) => a.priority.seconds - b.priority.seconds);
         let promoAvailable = false;
-        //console.log('filteredPromo', filteredPromo);
-        //filteredPromo.forEach(promo => {
         for (const promo of filteredPromo) {
           
-          //console.log('Promo foreach', promo);
+          console.log('Promo foreach', promo);
           if (!promoAvailable) {
             const typePromo = promo.conditions?.type;
             console.log('typePromo', typePromo);
             switch (typePromo) {
               case 'recharge':
                 response = promoRecharge(promo)
-                /*if (response.response) {
-                  promoAvailable = true;
-                }*/
                 break;
               case 'news':
                 response = await promoNewUsers(promo, trips, idUser)
-                //console.log('response promoNewUsers', response);
-                //if (response.response) promoAvailable = true;
                 break;
               case 'perDays':
                 response = await promoPerDays(promo, idUser);
-                //console.log('perDays response',response);
-                //if (response.response) promoAvailable = true;
-                //console.log('perDays promoAvailable',promoAvailable);
                 break;
-              /*case 'perHours':
-                response = promoPerHours()
-                break;*/
               default:
                 response = {code: 204, response: false, data:{}, message: "Not found promotions"}
                 break;
             }
             if (response.response) promoAvailable = true;
           }
-
         };
-        //console.log('response success', response);
-
       }else{
         response = {code: 204, response: false,data:{}, message: "The user does not apply for any promotion"}
       }
     }
-    //console.log('response response response', response);
     res.status(response.code).json({success: response.response, data:response.data, message: response.message});
 
   } catch (error) {
@@ -216,7 +274,6 @@ const promoPerDays = async (promo, idPassenger) => {
 const promoNewUsers = async (promo, trips, idPassenger) => {
 
   const usage = await getUsagePromotion(idPassenger, promo.id);
-  console.log('usage news', usage);
   if (!usage || usage <= promo.conditions.promoPerUser) {
     const uid = promo.id;
     const dateObjectStart = new Date(promo.startDate._seconds * 1000);

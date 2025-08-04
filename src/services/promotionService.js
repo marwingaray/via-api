@@ -30,14 +30,12 @@ const getPromotions = async () => {
     }
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.log('error', error);
-    //throw new Error('An unknown error occurred');
+    console.log('PROMOSERV01:', error);
   }
 };
 
 const getPromotionsAvailable = async () => {
   const now = admin.firestore.Timestamp.now();
-  console.log('now', now);
   try {
     const snapshot = await db.collection('promotions')
     .where('status', '==', true)
@@ -50,7 +48,7 @@ const getPromotionsAvailable = async () => {
     }
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.log('error', error);
+    console.log('PROMOSERV02', error);
     //throw new Error('An unknown error occurred');
   }
 }
