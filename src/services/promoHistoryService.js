@@ -68,7 +68,7 @@ const getHistoryByDriver = async (idDriver, paid="all") => {
  * @param {array} ids List of ids
  * @returns 
  */
-const getPromotionsByIds = async (idDriver, ids = []) => {
+const getPromotionsByIds = async (idDriver, ids) => {
   try {
     const path = db.collection(pathCollectionDriver).doc(idDriver).collection('promotionsHistory');
 
@@ -78,7 +78,6 @@ const getPromotionsByIds = async (idDriver, ids = []) => {
         return doc.exists ? { id: doc.id, ...doc.data() } : null;
       })
     );
-console.log('getPromotionsByIds',results);
 
     // Eliminar los que no existen
     return results.filter(item => item !== null);
@@ -88,10 +87,10 @@ console.log('getPromotionsByIds',results);
 };
 
 /***
- * Update status of history payments
+ * Update status of history payments to paid
  * const updatedRecords = await Promise.all(updates);
  * @param {*} idDriver 
- * @param {aray} list array of IDs
+ * @param {array} list array of IDs
  * @returns 
  */
 const updateStatePaymentAll = async (idDriver, list)=>{
