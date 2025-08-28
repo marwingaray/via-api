@@ -3,7 +3,8 @@ const dayjs = require('dayjs');
 
 const db = require("../database/firestoreDb");
 const admin = require('firebase-admin');
-const promotionService = require('../services/promotionService');
+const promotionService= require('../services/promotionService');
+const { deletePromotion, updateStatus } = promotionService;
 const { getUsagePromotion } = require('../services/passengerService.js');
 const { message } = require('../schemas/promotionHistorySchema');
 const { func } = require('joi');
@@ -274,6 +275,7 @@ const promoPerDays = async (promo, idPassenger) => {
 const promoNewUsers = async (promo, trips, idPassenger) => {
 
   const usage = await getUsagePromotion(idPassenger, promo.id);
+  console.log('usage news', usage);
   if (!usage || usage <= promo.conditions.promoPerUser) {
     const uid = promo.id;
     const dateObjectStart = new Date(promo.startDate._seconds * 1000);
@@ -355,4 +357,33 @@ const setPromotionHandler = async (req, res) => {
   res.status(response.code).json({success:response.response, data: response.data, message: response.message});
 }
 
-module.exports = { createPromotions, getPromotions, getPromotionByUser, getPromotionsAvailable, setPromotionHandler};
+const deletePromo = async (req, res)=>{
+  const { id } = req.params;
+  try {
+    const {status, message} = await deletePromotion(id);
+      if (status) {
+        res.status(200).json({success: true, message: "Deleted"});
+      }else{
+        res.status(500).json({success:false, data: {}, message: message});
+      }
+  } catch (error) {
+      res.status(500).json({success:false, message: error});
+  }
+}
+
+const patchStatus = async (req, res)=>{
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    const {statusDb, message} = await updateStatus(id, status);
+      if (statusDb) {
+        res.status(200).json({success: true, message: message});
+      }else{
+        res.status(500).json({success:false, data: {}, message: message});
+      }
+  } catch (error) {
+      res.status(500).json({success:false, message: error});
+  }
+}
+
+module.exports = { createPromotions, getPromotions, getPromotionByUser, getPromotionsAvailable, setPromotionHandler, deletePromo, patchStatus};

@@ -1,5 +1,5 @@
 const express =  require('express');
-const { getPromotions, getPromotionByUser, getPromotionsAvailable, setPromotionHandler } = require('../controller/promotionsController.js');
+const { getPromotions, getPromotionByUser, getPromotionsAvailable, setPromotionHandler, deletePromo, patchStatus } = require('../controller/promotionsController.js');
 const promotionSchema = require('../schemas/promotionsSchema.js')
 const {validatePromotion} = require('../middlewares/validatePromotion.js')
 const auth = require('../middlewares/auth.js');
@@ -20,6 +20,9 @@ router.get('/:idUser/:trips/:typeService/:typeUser', auth,  ((req, res)=>{
 
 router.post('/', auth, validatePromotion(promotionSchema), setPromotionHandler);
 
+router.delete('/:id', auth, deletePromo);
+
+router.patch('/:id', auth, patchStatus);
 
 // Path PUT to update 
 //router.put('/:id', promotionsController.updateUser);
