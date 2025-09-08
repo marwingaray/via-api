@@ -1,19 +1,19 @@
 const dayjs = require('dayjs');
-const { createPromotionsHistory, getHistoryByDriver, createPromotionsHistoryPassenger } = require('../services/promoHistoryService');
+const admin  = require('firebase-admin');
+const { createPromotionsHistory, getHistoryByDriver, createPromotionsHistoryPassenger, getPromotionsByIds } = require('../services/promoHistoryService');
 
 
 const createHistoryHandler = async (req, res) => {
   try {
     const data = req.body;
-    const todayTimestamp = {
-      seconds: dayjs().unix(),
-      nanoseconds: dayjs().millisecond() * 1e6,
-    };
-    const uid = data.idDriver;
+
+    const todayTimestamp = admin.firestore.Timestamp.now();
+    const uidDriver = data.idDriver;
+    const uidTrip = data.uid;
     const idPassenger = data.idUser;
     
     const newData  = { ...data, paid:false, createAt:todayTimestamp, };
-    const resDriver = await createPromotionsHistory(uid, adapterToDb(newData));
+    const resDriver = await createPromotionsHistory(uidDriver, uidTrip, adapterToDb(newData));
 
     await createPromotionsHistoryPassenger(idPassenger, data.uid);
     if (resDriver) {
@@ -48,8 +48,26 @@ const getHistoryByDriverHandler = async (req, res) => {
   }
 }
 
+/**
+ * return the promotions history by id
+ */
+const getHistoryByIdHandler = async (req, res) => {
+  try {
+    const { driver, idHistoryPayment } = req.params;
+    
+    const resGet = await getPromotionsByIds(driver, [idHistoryPayment]);
+    if (resGet) {
+      res.status(200).json({success: true, data:resGet, message: ''});
+    }else
+      res.status(204).json({ success: true, data: resGet, message: 'No se encontararon coincidencias'});
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 function adapterToDb(data){
   let res = {
+    id_trip: data.uid,
     cod_promo: data.codPromo,
     create_at: data.createAt,
     discount: data.discount,
@@ -57,10 +75,11 @@ function adapterToDb(data){
     id_user: data.idUser,
     paid: data.paid,
     service_type: data.typeService,
-    user_type:data.typeUser
+    user_type:data.typeUser,
+    isValid: data.isValid
   }
   return res;
 }
 
 
-module.exports = { createHistoryHandler, getHistoryByDriverHandler }
+module.exports = { createHistoryHandler, getHistoryByDriverHandler, getHistoryByIdHandler }

@@ -15,6 +15,7 @@ app.set('json spaces', 2);
 
 const allowedOrigins = [
   'http://localhost:4200',
+  'http://192.168.1.100:4200',
   'https://register.aqupe.com',
   'http://192.168.1.100:3000'
 ];

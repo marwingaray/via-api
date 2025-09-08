@@ -5,7 +5,8 @@ const promotionHistorySchema = Joi.object({
     'uid': 'incorrect value',
   }),
   codPromo: Joi.string().min(3).max(20).required().messages({
-    'codPromo': 'incorrect value',
+    "string.base": "El codigo de promocion debe ser un texto",
+    "string.empty": "El codigo de promocion no puede estar vacío"
   }),
   discount: Joi.number().required().messages({
     'discount': 'incorrect value',
@@ -21,6 +22,9 @@ const promotionHistorySchema = Joi.object({
   }),
   idUser: Joi.string().max(30).required().messages({
     'idUser': 'incorrect value',
+  }),
+  isValid: Joi.boolean().messages({
+    "boolean.base": "El campo 'isValid' debe ser verdadero o falso",
   }),
 });
 

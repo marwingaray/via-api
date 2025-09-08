@@ -5,9 +5,9 @@ const { getFirestore, collection, query, where, orderBy, getDocs } = require("fi
 const pathCollectionDriver = "drivers";
 const pathCollectionPassenger = "passengers";
 
-const createPromotionsHistory = async (uid, data) => {
+const createPromotionsHistory = async (uidDriver,uidTrip, data) => {
   try {
-    const docRef = await db.collection(`${pathCollectionDriver}/${uid}/promotionsHistory`).add(data);
+    const docRef = await db.collection(`${pathCollectionDriver}/${uidDriver}/promotionsHistory`).doc(uidTrip).set(data);
     return { id: docRef.id, ...data };
   } catch (error) {
     throw new Error(`Error al registrar historial: ${(error).message}`);
@@ -114,4 +114,4 @@ const updateStatePaymentAll = async (idDriver, list)=>{
   }
 }
 
-module.exports = { createPromotionsHistory, getHistoryByDriver,updateStatePaymentAll, createPromotionsHistoryPassenger}
+module.exports = { createPromotionsHistory, getHistoryByDriver,updateStatePaymentAll, createPromotionsHistoryPassenger, getPromotionsByIds}
