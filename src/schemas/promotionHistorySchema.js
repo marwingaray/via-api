@@ -1,8 +1,11 @@
 const Joi = require('joi');
 
 const promotionHistorySchema = Joi.object({
-  uid: Joi.string().min(3).required().messages({
+  uidPromotion: Joi.string().min(3).max(30).required().messages({
     'uid': 'incorrect value',
+  }),
+  uidService: Joi.string().min(10).max(40).required().messages({
+    'min.case': 'incorrect value',
   }),
   codPromo: Joi.string().min(3).max(20).required().messages({
     "string.base": "El codigo de promocion debe ser un texto",
