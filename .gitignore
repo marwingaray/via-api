@@ -40,3 +40,5 @@ coverage/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+src/config/dev-viago-firebase-adminsdk-r5k0t-dc54289b77.json
+src/config/dev-viago-firebase-adminsdk-r5k0t-dc54289b77.json

@@ -1,22 +1,23 @@
-const express =  require('express');
+const express = require('express');
 const { getPromotions, getPromotionByUser, getPromotionsAvailable, setPromotionHandler, deletePromo, patchStatus } = require('../controller/promotionsController.js');
 const promotionSchema = require('../schemas/promotionsSchema.js')
-const {validatePromotion} = require('../middlewares/validatePromotion.js')
+const { validatePromotion, } = require('../middlewares/validatePromotion.js')
 const auth = require('../middlewares/auth.js');
+//const verifyAppCheck = require('../middlewares/appcheckMiddleware.js');
 const router = express.Router();
 
 
 // Path GET return all promotions available
-router.get('/', auth, getPromotions);
+router.get('/', getPromotions);
 
 // Path GET by id
-router.get('/:typeService/:typeUser', auth, ((req, res)=>{
-  getPromotionsAvailable(req, res)
-}) );
+router.get('/:typeService/:typeUser', auth, ((req, res) => {
+   getPromotionsAvailable(req, res)
+}));
 
-router.get('/:idUser/:trips/:typeService/:typeUser', auth,  ((req, res)=>{
-  getPromotionByUser(req, res)
-}) );
+router.get('/:idUser/:trips/:typeService/:typeUser', auth, ((req, res) => {
+   getPromotionByUser(req, res)
+}));
 
 router.post('/', auth, validatePromotion(promotionSchema), setPromotionHandler);
 
